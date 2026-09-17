@@ -7,7 +7,7 @@ def compute_metrics(
     y_prob: np.ndarray,
     threshold: float = 0.5,
 ) -> dict[str, float]:
-    """y_true: {0,1} labels. y_prob: predicted fraud probability in [0,1]."""
+    """Compute AUROC, AUPRC, and Macro-F1 from binary labels and predicted probabilities."""
     y_true = np.asarray(y_true).astype(int).ravel()
     y_prob = np.asarray(y_prob).astype(float).ravel()
     assert y_true.shape == y_prob.shape
