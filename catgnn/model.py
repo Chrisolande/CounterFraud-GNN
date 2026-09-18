@@ -1,5 +1,5 @@
 import torch
-import torch.nn as nn
+from torch import nn
 
 from catgnn.causal import CausalInspector, CausalIntervener
 from catgnn.layers import TemporalAttentionLayer
@@ -47,7 +47,7 @@ class CaTGNN(nn.Module):
             beta_beta=beta_beta,
         )
 
-        # Classifier taking [h_target ; z_neighbor] = 2 * hidden_dim
+        # Classifier: [h_target ; z_neighbor] -> [2 * hidden_dim] -> 1
         self.classifier = nn.Sequential(
             nn.Linear(hidden_dim * 2, mlp_hidden),
             nn.LayerNorm(mlp_hidden),
@@ -70,22 +70,20 @@ class CaTGNN(nn.Module):
         x_neighbor_cat: torch.Tensor,
         t_gap: torch.Tensor,
         valid_mask: torch.Tensor,
-        rel_ids: torch.Tensor | None= None,
+        rel_ids: torch.Tensor | None = None,
         intervene: bool = True,
     ) -> dict[str, torch.Tensor]:
-
         x_target = self.encode_inputs(x_target_cont, x_target_cat)
         x_neighbor = self.encode_inputs(x_neighbor_cont, x_neighbor_cat)
 
-        # Project target node self-features
-        h_target = torch.relu(self.target_proj(x_target)) # [N, hidden_dim]
+        h_target = torch.relu(self.target_proj(x_target))  # [N, hidden_dim]
 
-        # Compute relational temporal attention over neighbors
+        # Temporal attention aggregation: z_neigh = Sum_j alpha_ij * V_ij
         alpha, V = self.attn_layer(x_target, x_neighbor, t_gap, valid_mask, rel_ids=rel_ids)
-        z_neigh = self.attn_layer.aggregate(alpha, V) # [N, hidden_dim]
+        z_neigh = self.attn_layer.aggregate(alpha, V)  # [N, hidden_dim]
 
-        # Fuse self-features with neighborhood context
-        h_fused = torch.cat([h_target, z_neigh], dim=-1) # [N, 2 * hidden_dim]
+        # Fused representation: h_fused = [h_target ; z_neigh]
+        h_fused = torch.cat([h_target, z_neigh], dim=-1)  # [N, 2 * hidden_dim]
         logits = self.classifier(h_fused).squeeze(-1)
 
         out = {"logits": logits, "z": h_fused, "alpha": alpha}
