@@ -1,8 +1,8 @@
 import numpy as np
 import pytorch_lightning as pl
-from sklearn.metrics import f1_score
 import torch
 import torchmetrics
+from sklearn.metrics import f1_score
 
 from catgnn.losses import CompositeLoss
 from catgnn.model import CaTGNN
@@ -74,7 +74,7 @@ class CaTGNNLightningModule(pl.LightningModule):
         self.test_targets: list[torch.Tensor] = []
 
     def current_gamma(self) -> float:
-        """Gradually ramp up gamma invariant loss weight to stabilize early training."""
+        """Linear warmup for causal-invariant loss weight: gamma_t = gamma * (t / warmup)."""
         warmup = self.hparams.warmup_epochs
         if warmup <= 0 or self.current_epoch >= warmup:
             return self.hparams.gamma
@@ -132,7 +132,7 @@ class CaTGNNLightningModule(pl.LightningModule):
 
     @staticmethod
     def _calibrated_f1(probs: np.ndarray, targets: np.ndarray) -> tuple[float, float]:
-        """Find optimal decision threshold on predictions for Macro-F1."""
+        """Threshold search for optimal Macro-F1."""
         best_f1, best_thresh = 0.0, 0.5
         thresholds = np.linspace(0.02, 0.98, 97)
         for t in thresholds:
