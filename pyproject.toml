@@ -1,0 +1,33 @@
+[project]
+name = "gnn"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "feature-engine>=1.9.4",
+    "numpy>=2.5.2",
+    "pytest>=9.1.1",
+    "scikit-learn>=1.9.0",
+    "sentence-transformers>=5.7.0",
+    "torch==2.13.0+cpu",
+    "torch-geometric>=2.8.0.post1",
+]
+
+#[tool.setuptools.packages.find]
+#where = ["."]
+#include = ["cat_gnn*"]
+#
+#[build-system]
+#requires = ["setuptools>=68"]
+#build-backend = "setuptools.backends.legacy:build"
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
