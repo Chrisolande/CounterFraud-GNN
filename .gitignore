@@ -7,6 +7,7 @@ __pycache__/
 *.pt
 *.pth
 *.ckpt
+!checkpoints/*.ckpt
 lightning_logs/
 .pytest_cache/
 .mypy_cache/

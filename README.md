@@ -156,12 +156,12 @@ CounterFraud-GNN/
 │   ├── lit_module.py               # CaTGNNLightningModule (warmup, threshold search)
 │   ├── metrics.py                  # AUROC, AUPRC, Macro-F1 metric utilities
 │   └── __init__.py                 # Clean public API exports
+├── checkpoints/                    # Verified trained PyTorch checkpoints (Seeds 42, 100, 2024, 777, 888)
 ├── main.py                         # Multi-seed CLI benchmark runner
 ├── train_multi_seeds.py            # Alias runner for multi-seed experiments
 ├── CaT_GNN_Walkthrough.ipynb       # Interactive portfolio notebook (code, math, plots)
 ├── tests/                          # Automated PyTest test suite
-│   ├── test_counterfraud.py        # Unit tests for layers, shapes, and gradients
-│   └── test_causal_verbatim.py     # Verification tests for causal interventions
+│   └── test_counterfraud.py        # Unit tests for layers, shapes, and gradients
 ├── multi_seed_results.csv          # Multi-seed benchmark results record
 ├── pyproject.toml                  # Dependency and tool configuration
 ├── uv.lock                         # Deterministic environment lockfile
