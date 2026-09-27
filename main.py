@@ -5,10 +5,17 @@ multiple random seeds with comprehensive metric aggregation (AUPRC, AUROC, Macro
 """
 
 import argparse
+import time
+import warnings
+
+# Suppress verbose deprecation and stream mismatch warnings
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 import pandas as pd
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import (
+    Callback,
     EarlyStopping,
     LearningRateMonitor,
     ModelCheckpoint,
@@ -16,6 +23,36 @@ from pytorch_lightning.callbacks import (
 
 from counterfraud.data import FraudGraphDataModule
 from counterfraud.lit_module import CaTGNNLightningModule
+
+
+class CleanEpochLogger(Callback):
+    """Clean, single-line epoch summary logger tailored for notebooks and terminals."""
+
+    def __init__(self, seed: int, total_epochs: int):
+        super().__init__()
+        self.seed = seed
+        self.total_epochs = total_epochs
+        self.start_time = 0.0
+
+    def on_train_epoch_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
+        self.start_time = time.time()
+
+    def on_validation_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
+        if trainer.sanity_checking:
+            return
+        elapsed = time.time() - self.start_time
+        metrics = trainer.callback_metrics
+        epoch = trainer.current_epoch + 1
+        loss = metrics.get("train/total_loss_epoch", metrics.get("train/total_loss_step", 0.0))
+        auroc = metrics.get("val/auroc", 0.0)
+        auprc = metrics.get("val/auprc", 0.0)
+        f1 = metrics.get("val/f1_macro", 0.0)
+        thresh = metrics.get("val/threshold", 0.5)
+
+        print(
+            f" [Seed {self.seed:4d}] Epoch {epoch:02d}/{self.total_epochs:02d} ({elapsed:4.1f}s) | "
+            f"Loss: {float(loss):.4f} | AUROC: {float(auroc):.4f} | AUPRC: {float(auprc):.4f} | Macro-F1: {float(f1):.4f} (τ={float(thresh):.2f})"
+        )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -42,6 +79,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--lr", type=float, default=1e-3, help="Peak learning rate for AdamW")
     parser.add_argument("--weight_decay", type=float, default=1e-5, help="Weight decay for regularization")
     parser.add_argument("--grad_clip_val", type=float, default=1.0, help="Gradient clipping maximum norm")
+    parser.add_argument("--devices", type=int, default=1, help="Number of GPUs or devices (default: 1 for clean fast training)")
+    parser.add_argument("--progress_bar", action="store_true", help="Enable verbose step progress bar (default: False for clean output)")
 
     # Architecture Hyperparameters
     parser.add_argument("--hidden_dim", type=int, default=64, help="GNN hidden representation dimension")
@@ -74,8 +113,7 @@ def run_benchmark(args: argparse.Namespace) -> pd.DataFrame:
     print("=" * 70)
     print(f"Dataset Path      : {args.data_path}")
     print(f"Evaluation Seeds  : {args.seeds}")
-    print(f"Max Epochs        : {args.max_epochs}")
-    print(f"Batch Size        : {args.batch_size}")
+    print(f"Max Epochs        : {args.max_epochs} | Batch Size: {args.batch_size} | Devices: {args.devices}")
     print(f"Hidden Dim / Heads: {args.hidden_dim} / {args.heads}")
     print(f"Causal Parameters : env_ratio={args.env_ratio}, top_k={args.top_k}, gamma={args.gamma}")
     print("=" * 70)
@@ -128,18 +166,28 @@ def run_benchmark(args: argparse.Namespace) -> pd.DataFrame:
         )
 
         callbacks = [
-            ModelCheckpoint(monitor="val/auprc", mode="max", save_top_k=1, filename=f"counterfraud-seed{seed}-{{epoch:02d}}-{{val/auprc:.4f}}"),
+            ModelCheckpoint(
+                dirpath="checkpoints",
+                monitor="val/auprc",
+                mode="max",
+                save_top_k=1,
+                filename=f"counterfraud-seed{seed}-epoch{{epoch:02d}}-val_auprc{{val/auprc:.4f}}",
+            ),
             EarlyStopping(monitor="val/auprc", mode="max", patience=8),
             LearningRateMonitor(logging_interval="epoch"),
         ]
 
+        if not args.progress_bar:
+            callbacks.append(CleanEpochLogger(seed=seed, total_epochs=args.max_epochs))
+
         trainer = pl.Trainer(
             max_epochs=args.max_epochs,
             accelerator="auto",
-            devices="auto",
+            devices=args.devices,
             gradient_clip_val=args.grad_clip_val,
             callbacks=callbacks,
-            enable_progress_bar=True,
+            enable_progress_bar=args.progress_bar,
+            enable_model_summary=(idx == 0),
             fast_dev_run=args.fast_dev_run,
             log_every_n_steps=10,
         )
@@ -149,6 +197,7 @@ def run_benchmark(args: argparse.Namespace) -> pd.DataFrame:
             module,
             datamodule=datamodule,
             ckpt_path="best" if not args.fast_dev_run else None,
+            verbose=False,
         )[0]
 
         record = {
@@ -159,11 +208,11 @@ def run_benchmark(args: argparse.Namespace) -> pd.DataFrame:
             "Threshold": test_results.get("test/threshold", 0.5),
         }
         records.append(record)
-        print(f"Trial Seed {seed} Final Test: AUPRC = {record['AUPRC']:.4f} | AUROC = {record['AUROC']:.4f} | Macro-F1 = {record['Macro-F1']:.4f} (Threshold = {record['Threshold']:.3f})")
+        print(f" -> Trial Seed {seed} Final Test: AUPRC = {record['AUPRC']:.4f} | AUROC = {record['AUROC']:.4f} | Macro-F1 = {record['Macro-F1']:.4f} (Threshold = {record['Threshold']:.3f})")
 
     df = pd.DataFrame(records)
     print("\n" + "=" * 70)
-    print(" CaT-GNN MULTI-SEED EXPERIMENT SUMMARY")
+    print(" COUNTERFRAUD-GNN MULTI-SEED EXPERIMENT SUMMARY")
     print("=" * 70)
     print(df.to_string(index=False))
 
