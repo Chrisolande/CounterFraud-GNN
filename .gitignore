@@ -1,0 +1,37 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Caching & Preprocessed binary datasets
+*.pt
+*.pth
+*.ckpt
+lightning_logs/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.hypothesis/
+
+# Virtual Environments
+.venv/
+venv/
+env/
+.conda/
+
+# Jupyter
+.ipynb_checkpoints
+
+# Agent tools & configs
+.agents/
+.serena/
+.specify/
+.claude/
+
+# Logs & OS artifacts
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
