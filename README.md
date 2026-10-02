@@ -124,8 +124,11 @@ invariant-CaT-GNN/
 ├── tests/                          # Automated PyTest test suite
 │   ├── test_catgnn.py              # Unit tests for layers, shapes, and gradients
 │   └── test_causal_verbatim.py     # Verification tests for causal interventions
+├── multi_seed_results.csv          # Multi-seed benchmark results record
 ├── pyproject.toml                  # Dependency and tool configuration
-└── uv.lock                         # Deterministic environment lockfile
+├── uv.lock                         # Deterministic environment lockfile
+├── .gitattributes                  # Linguist language configuration (*.ipynb -> Python)
+└── .gitignore                      # Git artifact and cache exclusions
 ```
 
 ---
