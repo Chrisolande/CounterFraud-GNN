@@ -3,8 +3,8 @@ from collections.abc import Iterable
 import torch
 from torch import nn
 
-from catgnn.losses.focal import FocalLoss
-from catgnn.losses.weighted_bce import WeightedBCEWithLogitsLoss
+from counterfraud.losses.focal import FocalLoss
+from counterfraud.losses.weighted_bce import WeightedBCEWithLogitsLoss
 
 
 class CompositeLoss(nn.Module):

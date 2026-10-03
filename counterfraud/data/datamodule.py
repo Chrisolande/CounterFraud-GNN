@@ -1,8 +1,8 @@
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 
-from catgnn.data.dataset import SFFSDGraphDataset
-from catgnn.data.features import build_features
+from counterfraud.data.dataset import SFFSDGraphDataset
+from counterfraud.data.features import build_features
 
 
 class FraudGraphDataModule(pl.LightningDataModule):

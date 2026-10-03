@@ -3,7 +3,7 @@ import math
 import torch
 from torch import nn
 
-from catgnn.layers.time import HarmonicTimeEncoder
+from counterfraud.layers.time import HarmonicTimeEncoder
 
 
 class TemporalAttentionLayer(nn.Module):

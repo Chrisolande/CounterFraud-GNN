@@ -4,8 +4,8 @@ import torch
 import torchmetrics
 from sklearn.metrics import f1_score
 
-from catgnn.losses import CompositeLoss
-from catgnn.model import CaTGNN
+from counterfraud.losses import CompositeLoss
+from counterfraud.model import CaTGNN
 
 
 class CaTGNNLightningModule(pl.LightningModule):

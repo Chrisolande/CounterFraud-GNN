@@ -1,9 +1,9 @@
 import numpy as np
 import torch
 
-from catgnn.causal import CausalInspector, CausalIntervener
-from catgnn.metrics import compute_metrics
-from catgnn.model import CaTGNN
+from counterfraud.causal import CausalInspector, CausalIntervener
+from counterfraud.metrics import compute_metrics
+from counterfraud.model import CaTGNN
 
 
 def test_causal_inspector():

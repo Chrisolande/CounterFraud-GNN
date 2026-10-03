@@ -1,6 +1,6 @@
-"""CaT-GNN: Causal Temporal Graph Neural Network for Fraud Detection.
+"""CounterFraud-GNN: Counterfactual Temporal Graph Neural Network for Invariant Fraud Detection.
 
-Main execution entrypoint for training and evaluating CaT-GNN across single or
+Main execution entrypoint for training and evaluating CounterFraud-GNN across single or
 multiple random seeds with comprehensive metric aggregation (AUPRC, AUROC, Macro-F1).
 """
 
@@ -14,13 +14,13 @@ from pytorch_lightning.callbacks import (
     ModelCheckpoint,
 )
 
-from catgnn.data import FraudGraphDataModule
-from catgnn.lit_module import CaTGNNLightningModule
+from counterfraud.data import FraudGraphDataModule
+from counterfraud.lit_module import CaTGNNLightningModule
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="CaT-GNN: Multi-Seed Training & Benchmark Evaluation",
+        description="CounterFraud-GNN: Multi-Seed Training & Benchmark Evaluation",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     # Dataset and Graph Parameters
@@ -70,7 +70,7 @@ def build_parser() -> argparse.ArgumentParser:
 def run_benchmark(args: argparse.Namespace) -> pd.DataFrame:
     """Run full benchmark across configured seeds and report mean ± std."""
     print("=" * 70)
-    print(" CaT-GNN (Causal Temporal GNN) Benchmark Execution")
+    print(" CounterFraud-GNN (Counterfactual Temporal GNN) Benchmark Execution")
     print("=" * 70)
     print(f"Dataset Path      : {args.data_path}")
     print(f"Evaluation Seeds  : {args.seeds}")
@@ -128,7 +128,7 @@ def run_benchmark(args: argparse.Namespace) -> pd.DataFrame:
         )
 
         callbacks = [
-            ModelCheckpoint(monitor="val/auprc", mode="max", save_top_k=1, filename=f"catgnn-seed{seed}-{{epoch:02d}}-{{val/auprc:.4f}}"),
+            ModelCheckpoint(monitor="val/auprc", mode="max", save_top_k=1, filename=f"counterfraud-seed{seed}-{{epoch:02d}}-{{val/auprc:.4f}}"),
             EarlyStopping(monitor="val/auprc", mode="max", patience=8),
             LearningRateMonitor(logging_interval="epoch"),
         ]

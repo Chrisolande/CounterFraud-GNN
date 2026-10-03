@@ -1,8 +1,8 @@
 import torch
 from torch import nn
 
-from catgnn.causal import CausalInspector, CausalIntervener
-from catgnn.layers import TemporalAttentionLayer
+from counterfraud.causal import CausalInspector, CausalIntervener
+from counterfraud.layers import TemporalAttentionLayer
 
 
 class CaTGNN(nn.Module):

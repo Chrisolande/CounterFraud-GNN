@@ -1,39 +1,51 @@
-# CaT-GNN: Causal Temporal Graph Neural Network for Fraud Detection
+# CounterFraud-GNN: Counterfactual Temporal Graph Learning for Invariant Fraud Detection
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg)](https://pytorch.org/)
-[![PyTorch Lightning](https://img.shields.io/badge/Lightning-2.0+-792ee5.svg)](https://lightning.ai/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![PyTorch 2.0+](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c.svg)](https://pytorch.org/)
+[![PyTorch Lightning](https://img.shields.io/badge/Lightning-2.0%2B-792ee5.svg)](https://lightning.ai/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://img.shields.io/badge/tests-7%20passed-brightgreen.svg)]()
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+## What this does
+
+Every second, millions of digital payments flow through financial networks. Detecting fraudulent transactions in real time is crucial for stopping illicit activity and protecting cardholders.
+
+Two major challenges make financial fraud detection on transaction networks exceptionally difficult:
+
+1. **Fraud patterns constantly shift, creating misleading shortcuts.** Transaction volume surges during holidays, marketing promotions, or localized shopping sprees. Standard Graph Neural Networks (GNNs) easily latch onto these temporary environmental patterns, learning "shortcuts" that happen to correlate with fraud during one period but fail completely when real fraud tactics change.
+2. **Extreme class imbalance and multi-relational connections.** Genuine fraud represents only a tiny fraction of total transactions (a needle in a massive haystack). Furthermore, transactions are not isolated events: they are interconnected across cardholders (`Source`), merchants (`Target`), physical stores (`Location`), and transaction channels (`Type`).
+
+This project solves both problems with **CounterFraud-GNN (Counterfactual Temporal Graph Neural Network)**. By identifying the true invariant causal signals of fraud and actively stress-testing predictions against simulated environment shifts, the model produces robust fraud predictions that generalize across changing market conditions.
 
 ---
 
-## 📌 Executive Summary & Motivation
+## How it works
 
-Financial transaction graphs suffer from severe **distribution shifts and spurious temporal correlations**. Standard Graph Neural Networks often overfit to transient shortcuts (e.g., temporary merchant promotions, localized burst volumes, seasonal activity hotspots) that do not represent true invariant mechanisms of financial fraud.
+CounterFraud-GNN models financial transactions as a dynamic, multi-relational graph and applies causal intervention techniques during training. A few key design choices make its predictions robust in practice rather than just accurate on historical training data:
 
-**CaT-GNN (Causal Temporal Graph Neural Network)** addresses this fundamental limitation by combining:
-1. **Continuous Multi-Scale Harmonic Time Encoding ($Time2Vec$)**: Capturing both micro-second burst dynamics and long-term trends.
-2. **Multi-Head Relational Attention**: Dynamically weighting multi-relational edges (`Source`, `Target`, `Location`, `Type`).
-3. **Parameter-Free Causal Neighborhood Inspection**: Automatically partitioning local neighborhoods into invariant **Causal Nodes** ($\mathcal{C}_i$) and spurious **Environment Nodes** ($\mathcal{E}_i$) based on attention distributions.
-4. **Counterfactual Beta-Mixup Intervention ($do(V_{\text{env}})$)**: Performing structural backdoor adjustments by replacing environment features with Beta-interpolated causal donor representations.
-5. **Invariant Consistency Regularization with Warmup**: Penalizing sensitivity to environmental interventions under a progressive warmup schedule.
+- **It captures time continuously across all scales.** Fraudsters often execute rapid bursts of transactions within seconds, while seasonal habits evolve over months. Continuous Harmonic Time Encoding ($Time2Vec$) uses a bank of frequencies to capture both microsecond bursts and long-term cyclic trends without artificial time binning.
+- **It reasons over multi-relational connections.** Multi-head relational attention dynamically weighs connections across shared cards, merchants, locations, and transaction types so the model attends to the most relevant historical context for each payment.
+- **It separates causal signals from background noise.** A parameter-free Causal Inspector uses learned attention scores to partition a transaction's local neighborhood into invariant **Causal Nodes** ($\mathcal{C}_i$, the true behavioral drivers) and spurious **Environment Nodes** ($\mathcal{E}_i$, background noise like local sales surges).
+- **It stress-tests predictions with counterfactual interventions.** To verify that predictions don't rely on spurious background noise, a Causal Intervener uses Beta-mixup backdoor adjustments ($do(V_{\text{env}})$) to swap out environmental features with donor representations. If the model is truly detecting invariant fraud mechanics, its verdict will remain consistent under these interventions.
+- **Invariant consistency regularization prevents shortcut learning.** A composite objective with a progressive warmup schedule penalizes prediction volatility under environmental perturbations, steering the neural network away from fleeting shortcuts.
+- **Decision thresholds are calibrated for extreme imbalance.** Rather than assuming a generic 0.5 decision boundary, the system dynamically searches for the optimal decision threshold on validation data to maximize Macro-F1 across severe class imbalances.
+- **Validated rigorously across multiple random seeds.** Evaluated across 5 random seeds under strict chronological splits (70% train / 30% test) to guarantee reproducibility and statistical significance.
 
 ---
 
-## 🏆 Empirical Benchmark Performance
+## Empirical benchmark performance
 
 Evaluated on the **S-FFSD** financial fraud dataset across 5 random seeds (`42, 100, 2024, 777, 888`) under a strict chronological split (70% train / 30% test):
 
 ### Aggregate Results (Mean $\pm$ Std)
 
-| Metric | CaT-GNN Performance | Range [Min – Max] |
+| Metric | CounterFraud-GNN Performance | Range [Min - Max] |
 | :--- | :---: | :---: |
-| **AUPRC** (Area Under PR Curve) | **$0.7094 \pm 0.1311$** | **0.5576 – 0.9155** |
-| **AUROC** (Area Under ROC Curve) | **$0.8783 \pm 0.0484$** | **0.8193 – 0.9526** |
-| **Macro-F1** (Calibrated Threshold) | **$0.7917 \pm 0.0471$** | **0.7509 – 0.8713** |
-| **Calibrated Decision Threshold** | **$0.2820 \pm 0.0522$** | **0.2300 – 0.3600** |
+| **AUPRC** (Area Under PR Curve) | **$0.7094 \pm 0.1311$** | **0.5576 - 0.9155** |
+| **AUROC** (Area Under ROC Curve) | **$0.8783 \pm 0.0484$** | **0.8193 - 0.9526** |
+| **Macro-F1** (Calibrated Threshold) | **$0.7917 \pm 0.0471$** | **0.7509 - 0.8713** |
+| **Calibrated Decision Threshold** | **$0.2820 \pm 0.0522$** | **0.2300 - 0.3600** |
 
 ### Per-Seed Detailed Breakdown
 
@@ -47,7 +59,12 @@ Evaluated on the **S-FFSD** financial fraud dataset across 5 random seeds (`42, 
 
 ---
 
-## 🧠 Mathematical Formulations
+## Mathematical formulations
+
+<details>
+<summary><b>Click to expand: metric derivations and model math</b></summary>
+
+<br>
 
 ```mermaid
 flowchart LR
@@ -60,12 +77,14 @@ flowchart LR
     F & G --> H["Composite Invariant Loss L_total"]
 ```
 
-### 1. Harmonic Time Encoding ($Time2Vec$)
+### 1. Continuous Harmonic Time Encoding ($Time2Vec$)
+
 Given a continuous inter-event time delta $\Delta t_{ij} = |t_i - t_j|$, temporal encodings are projected via a bank of log-spaced frequencies:
 
 $$\Phi(\Delta t) = \cos(\mathbf{w} \cdot \Delta t + \mathbf{b}), \quad \mathbf{w}_k = \frac{1}{10^{9 \cdot \frac{k}{d_{\mathrm{time}} - 1}}}$$
 
 ### 2. Multi-Head Relational Attention
+
 Attention coefficients $e_{ij}^h$ combine Query, Key, Temporal embeddings, and discrete relation bias:
 
 $$e_{ij}^h = \mathrm{LeakyReLU}\left(\mathbf{a}_h^T \left[ \mathbf{q}_i^h \mathbin{\Vert} \mathbf{k}_j^h \mathbin{\Vert} \Phi(\Delta t_{ij}) \right] \cdot \frac{1}{\sqrt{2 d_h + d_{\mathrm{time}}}}\right) + \mathbf{b}_{\mathrm{rel}}(r_{ij})^h$$
@@ -73,29 +92,48 @@ $$e_{ij}^h = \mathrm{LeakyReLU}\left(\mathbf{a}_h^T \left[ \mathbf{q}_i^h \mathb
 $$\alpha_{ij}^h = \frac{\exp(e_{ij}^h)}{\sum_{k \in \mathcal{N}_i} \exp(e_{ik}^h)}$$
 
 ### 3. Causal vs. Environment Neighborhood Partitioning
+
 Neighborhood importance is scored by head-averaged attention weights $s_j = \frac{1}{H} \sum_{h=1}^H \alpha_{ij}^h$. The neighborhood is partitioned into environment slots $\mathcal{E}_i$ and causal slots $\mathcal{C}_i$ via threshold ratio $r_{\mathrm{env}}$:
 
 $$\mathcal{E}_i = \mathrm{Bottom-}k_{\mathrm{env}}(s_j), \quad \mathcal{C}_i = \mathcal{N}_i \setminus \mathcal{E}_i, \quad \text{where } k_{\mathrm{env}} = \min(\lceil r_{\mathrm{env}} \cdot |\mathcal{N}_i| \rceil, |\mathcal{N}_i| - 1)$$
 
 ### 4. Counterfactual Beta-Mixup Backdoor Adjustment ($\mathrm{do}(V_{\mathrm{env}})$)
+
 For each environment node $j \in \mathcal{E}_i$, its value representation $V_j$ is intervened by mixing with a top-$k$ causal donor $x_c \in \mathcal{C}_i$:
 
 $$\mathrm{do}(V_j) = \lambda \cdot V_j + (1 - \lambda) \cdot x_c, \quad \lambda \sim \mathrm{Beta}(\alpha, \beta)$$
 
 ### 5. Composite Invariant Consistency Loss
+
 The total objective enforces task accuracy while penalizing prediction shift under environmental interventions:
 
 $$\mathcal{L}_{\mathrm{total}} = \mathcal{L}_{\mathrm{task}}(y, \hat{y}) + \gamma(t) \cdot \mathcal{L}_{\mathrm{task}}(y, \hat{y}_{\mathrm{int}}) + \eta \|\mathbf{w}\|_2^2$$
 
 $$\text{with linear warmup: } \gamma(t) = \gamma_{\mathrm{max}} \cdot \min\left(1.0, \frac{t}{T_{\mathrm{warmup}}}\right)$$
 
+### 6. Imbalanced Classification Losses
+
+For class-imbalanced fraud detection, the base task loss $\mathcal{L}_{\mathrm{task}}$ supports Focal Loss and Weighted BCE:
+
+$$\mathcal{L}_{\mathrm{focal}} = -\alpha_t (1 - p_t)^\gamma \log(p_t)$$
+
+$$\mathcal{L}_{\mathrm{weighted\_bce}} = - \left[ w_{\mathrm{pos}} \cdot y \log(\sigma(\hat{y})) + (1 - y) \log(1 - \sigma(\hat{y})) \right]$$
+
+### 7. Evaluation Metrics & Decision Calibration
+
+- **AUPRC**: Area under the Precision-Recall curve, sensitive to rare positive (fraud) instances.
+- **AUROC**: Area under the Receiver Operating Characteristic curve.
+- **Macro-F1 & Threshold Tuning**: Finding optimal decision threshold $\tau^* = \arg\max_\tau \text{Macro-F1}(\tau)$ over validation predictions.
+
+</details>
+
 ---
 
-## 📂 Repository Architecture
+## Project structure
 
 ```text
-invariant-CaT-GNN/
-├── catgnn/                         # Core modular framework
+CounterFraud-GNN/
+├── counterfraud/                   # Core modular framework
 │   ├── causal/
 │   │   ├── inspector.py            # CausalInspector (attention-based slot partitioning)
 │   │   ├── intervener.py           # CausalIntervener (Beta-mixup backdoor adjustment)
@@ -122,7 +160,7 @@ invariant-CaT-GNN/
 ├── train_multi_seeds.py            # Alias runner for multi-seed experiments
 ├── CaT_GNN_Walkthrough.ipynb       # Interactive portfolio notebook (code, math, plots)
 ├── tests/                          # Automated PyTest test suite
-│   ├── test_catgnn.py              # Unit tests for layers, shapes, and gradients
+│   ├── test_counterfraud.py        # Unit tests for layers, shapes, and gradients
 │   └── test_causal_verbatim.py     # Verification tests for causal interventions
 ├── multi_seed_results.csv          # Multi-seed benchmark results record
 ├── pyproject.toml                  # Dependency and tool configuration
@@ -133,20 +171,22 @@ invariant-CaT-GNN/
 
 ---
 
-## 🚀 Installation & Setup
+## Getting started
 
-### Using `uv` (Fastest)
+### 1. Installation
+
+Set up the environment with `uv` (recommended) or `pip`:
 
 ```bash
 # Clone the repository
-git clone https://github.com/Chrisolande/invariant-CaT-GNN.git
-cd invariant-CaT-GNN
+git clone https://github.com/Chrisolande/CounterFraud-GNN.git
+cd CounterFraud-GNN
 
-# Create and sync virtual environment
+# Create and sync virtual environment with uv
 uv sync
 ```
 
-### Using `pip`
+Or using standard `pip`:
 
 ```bash
 python -m venv .venv
@@ -154,13 +194,23 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -e .
 ```
 
+### 2. Dataset setup
+
+Place the S-FFSD dataset CSV file in the root directory:
+
+```
+CounterFraud-GNN/
+├── S-FFSD.csv                        # Raw transaction dataset
+└── sffsd_ai4risk_preprocessed.pt     # (Auto-generated on first run)
+```
+
 ---
 
-## ⚡ Quickstart & Workflows
+## Workflows & usage
 
-### 1. Run the Multi-Seed Benchmark
+### 1. Run the multi-seed benchmark CLI
 
-Execute multi-seed training and evaluation across 5 random seeds on GPU/CPU with automated metric summary (Mean $\pm$ Std):
+Execute training and evaluation across 5 random seeds with automated metric aggregation (Mean $\pm$ Std):
 
 ```bash
 python main.py \
@@ -173,33 +223,93 @@ python main.py \
     --export_csv multi_seed_results.csv
 ```
 
-### 2. Interactive Notebook Walkthrough
+### 2. Programmatic Python API
 
-Explore the end-to-end architecture, step-by-step layer tensor shapes, and live ROC / Precision-Recall curve visualizations:
+Train and evaluate CounterFraud-GNN directly within Python scripts:
 
-```bash
-jupyter lab CaT_GNN_Walkthrough.ipynb
+```python
+import pytorch_lightning as pl
+from counterfraud import FraudGraphDataModule, CaTGNNLightningModule
+
+# 1. Prepare data module
+dm = FraudGraphDataModule(data_path="S-FFSD.csv", batch_size=128, max_neighbors=20)
+dm.setup()
+
+# 2. Initialize Lightning module with causal consistency
+model = CaTGNNLightningModule(
+    cont_dim=dm.cont_dim,
+    cat_dims=dm.cat_dims,
+    hidden_dim=64,
+    heads=4,
+    gamma=1.0,
+    warmup_epochs=3,
+    base_loss="focal",
+    pos_weight=dm.pos_weight,
+)
+
+# 3. Train and test
+trainer = pl.Trainer(max_epochs=20, accelerator="auto")
+trainer.fit(model, datamodule=dm)
+trainer.test(model, datamodule=dm)
 ```
 
-### 3. Run Automated Tests
+### 3. Feature engineering & graph construction
+
+Extract 122-dimensional multi-window statistical features and relational graph structures:
+
+```python
+from counterfraud.data import build_features
+
+# Extract features and relational adjacencies with automatic disk caching
+data_dict = build_features(csv_path="S-FFSD.csv", cache_path="sffsd_ai4risk_preprocessed.pt")
+print(f"Processed {data_dict['x_cont'].shape[0]} transactions with {data_dict['x_cont'].shape[1]} features.")
+```
+
+### 4. Interactive notebook & visualization
+
+Explore model dynamics, step-by-step tensor transformations, and interactive transaction subgraphs:
 
 ```bash
-pytest tests/
+# Launch interactive portfolio walkthrough
+jupyter lab CaT_GNN_Walkthrough.ipynb
+
+# Generate interactive PyVis transaction subgraph
+python visualize_interactive_graph.py
 ```
 
 ---
 
-## 📊 Key Configurable Parameters
+## Key configurable parameters
 
 | Argument | Type | Default | Description |
 | :--- | :---: | :---: | :--- |
-| `--seeds` | `list[int]` | `[42, 100, 2024, 777, 888]` | Seeds for robust multi-run benchmark aggregation. |
-| `--max_epochs` | `int` | `20` | Max training epochs per seed. |
-| `--base_loss` | `str` | `focal` | Base loss function (`focal` or `weighted_bce`). |
-| `--gamma` | `float` | `1.0` | Invariant consistency loss multiplier $\gamma$. |
+| `--seeds` | `list[int]` | `[42, 100, 2024, 777, 888]` | Seeds for multi-run benchmark aggregation. |
+| `--max_epochs` | `int` | `20` | Maximum training epochs per seed. |
+| `--batch_size` | `int` | `128` | Mini-batch size for DataLoader. |
+| `--base_loss` | `str` | `focal` | Base task loss (`focal` or `weighted_bce`). |
+| `--gamma` | `float` | `1.0` | Peak weight on causal-invariant consistency loss $\gamma$. |
 | `--warmup_epochs` | `int` | `3` | Epochs to linearly ramp $\gamma$ from $0 \to \gamma_{\text{max}}$. |
 | `--env_ratio` | `float` | `0.2` | Fraction of lowest-attention neighbors assigned to $\mathcal{E}_i$. |
 | `--top_k` | `int` | `5` | Candidate causal donor pool size for Beta-mixup. |
 | `--time_dim` | `int` | `16` | Frequency dimension for Harmonic Time2Vec. |
 | `--hidden_dim` | `int` | `64` | GNN hidden representation dimension. |
 | `--heads` | `int` | `4` | Number of relational attention heads. |
+| `--export_csv` | `str` | `multi_seed_results.csv` | Output file for benchmark metrics summary. |
+
+---
+
+## Testing & quality assurance
+
+```bash
+# Run test suite (7 tests)
+uv run pytest tests/ -v
+
+# Run code style & lint checks
+uv run ruff check counterfraud tests
+```
+
+---
+
+## License
+
+Distributed under the MIT License. See `LICENSE` for details.
